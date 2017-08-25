@@ -247,7 +247,7 @@ int main() {
 
 
             int prev_size = previous_path_x.size(); // this is the last path that the car was follwing
-//
+
             if (prev_size > 0) {
                 car_s = end_path_s;
             }
@@ -256,8 +256,10 @@ int main() {
             //find ref_v to use
             for (int i = 0; i < sensor_fusion.size(); i++) {
 
-
-                //car is in my lane
+/**
+ *  d will tell what lane the car is in .
+ *
+ */
                 float d = sensor_fusion[i][6];
                 if (d < (2 + 4 * lane + 2) && d > (2 + 4 * lane - 2)) {
                     double vx = sensor_fusion[i][3];
@@ -288,10 +290,13 @@ int main() {
                 ref_vel += .224;
             }
 
+            // Create a  list of widely spaced (x,y) way points ,evenly spaced at 30 m
+            // later we will interpolate a these waypoints  with a sliine and fill it in  with more points that control space
 			vector<double> ptsx;
 			vector<double> ptsy;
 
 			// reference x,y,yaw states
+            //either we  will reference the starting point as where the car is or at  the previous oaths end point.
 			double ref_x = car_x;
 			double ref_y = car_y;
 			double ref_yaw = deg2rad(car_yaw);
@@ -330,7 +335,7 @@ int main() {
 
 			}
 
-			//in frenet add evenly 30 m spaved points ahead of the  starting reference
+            //in Frenet add evenly 30 m saved points ahead of the  starting reference
 			vector<double> next_wp0 = getXY(car_s + 30, (2 + 4 * lane), map_waypoints_s, map_waypoints_x,
 											map_waypoints_y);
 			vector<double> next_wp1 = getXY(car_s + 60, (2 + 4 * lane), map_waypoints_s, map_waypoints_x,
@@ -359,34 +364,32 @@ int main() {
 			//create a spline
 			tk::spline s;
 
-			// set the x and y poihnts to spline
+            // set the x and y points to spline
 			s.set_points(ptsx, ptsy);
-//
+
             json msgJson;
-//
-//
+
+            // Define aacctual a(x,y) points we will use for planner
             vector<double> next_x_vals;
             vector<double> next_y_vals;
 
 
-//			// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-//
-//			int path_size = previous_path_x.size();
-//
+            // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+
+            // Start will all the previous a path point from the last time
             for (int i = 0; i < previous_path_x.size(); i++) {
 				next_x_vals.push_back(previous_path_x[i]);
 				next_y_vals.push_back(previous_path_y[i]);
 			}
 
-			//calculate how to break up the spline points as o that we travel at our desired  reference velocity
+            //calculate how to break up the spline points as so that we travel at our desired  reference velocity
 			double target_x = 30.0;
 			double target_y = s(target_x);
 			double target_dist = sqrt((target_x) * (target_x) + (target_y) * (target_y));
 
 			double x_add_on = 0;
 
-//            fill up the rest of our path planner after  fillinf it wityh previous points ,here we will always outpit 50 points
-
+            //fill up the rest of our path planner after  filling it with previous points ,here we will always output 50 points
 			for (int i = 1; i <= 50 - previous_path_x.size(); i++) {
 
 				double N = (target_dist / (0.02 * ref_vel / 2.24));
@@ -409,7 +412,6 @@ int main() {
 				next_y_vals.push_back(y_point);
 			}
 
-          	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           	msgJson["next_x"] = next_x_vals;
           	msgJson["next_y"] = next_y_vals;
 

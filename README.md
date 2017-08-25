@@ -1,6 +1,52 @@
 # CarND-Path-Planning-Project
 Self-Driving Car Engineer Nanodegree Program
-   
+
+### Introduction 
+ 
+ This project mainly focuses navigating a car in a highway sinario where 
+ there is traffic and the car is suppose to make decisions on the movement of the car 
+ such that there are no jerk when transition between lanes .
+ The  goal of the self driving  car are as mention in the goals mentioned below.
+ 
+
+We don’t our avoid our out puts to be like:
+![alt text](https://d17h27t6h515a5.cloudfront.net/topher/2017/June/59443931_circle-path/circle-path.gif)
+![alt text](https://d17h27t6h515a5.cloudfront.net/topher/2017/June/59432c9e_car-in-line/car-in-line.gif)
+
+
+ ### Model
+ To run this project  data is been sent from the simulator  to the program though sockets. We  provided with waypoint data from the simulator weare to make the following assumption.
+ 
+ Each waypoint has an (x,y) global map position, and a Frenet s value and Frenet d unit normal vector (split up into the x component, and the y component).
+ 
+ The s value is the distance along the direction of the road. The first waypoint has an s value of 0 because it is the starting point.
+ 
+ The d vector has a magnitude of 1 and points perpendicular to the road in the direction of the right-hand side of the road. The d vector can be used to calculate lane positions. For example, if you want to be in the left lane at some waypoint just add the waypoint's (x,y) coordinates with the d vector multiplied by 2. Since the lane is 4 m wide, the middle of the left lane (the lane closest to the double-yellow diving line) is 2 m from the waypoint.
+ 
+ If you would like to be in the middle lane, add the waypoint's coordinates to the d vector multiplied by 6 = (2+4), since the center of the middle lane is 4 m from the center of the left lane, which is itself 2 m from the double-yellow diving line and the waypoints.
+ 
+ 
+ 
+ 
+ The model is pretty straing forward.
+
+- get the way points / or a path and get the previous path if exists .
+- check for correct lane else set to deafulat lane.
+-  check if the car is close to another car then reduce speed else keep increase speed in intervals.
+-  get the XY coordinates from the waypoint using the getXY function.
+-  shift the car reference angle to 0 degree
+-  add all the current points with a few previous point  from the previous path to reduce jerk
+- calculate how to break up the spline points as so that we travel at our desired  reference velocity
+- convert back all the points to original reference 
+- push the new set of values to the nextX and next y
+
+
+ 
+ We expect an output such as this :
+ ![alt text](https://d17h27t6h515a5.cloudfront.net/topher/2017/June/594452de_lane-change/lane-change.gif)
+
+ 
+ 
 ### Simulator.
 You can download the Term3 Simulator which contains the Path Planning Project from the [releases tab (https://github.com/udacity/self-driving-car-sim/releases).
 
@@ -138,7 +184,7 @@ still be compilable with cmake and make./
 
 
 
-Additional Information:
+## Additional information and references:
 Splines.h lib localtion : http://kluge.in-chemnitz.de/opensource/spline/spline.h
 
 
