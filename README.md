@@ -9,9 +9,6 @@ Self-Driving Car Engineer Nanodegree Program
  The  goal of the self driving  car are as mention in the goals mentioned below.
  
 
-We don’t our avoid our out puts to be like:
-![alt text](https://d17h27t6h515a5.cloudfront.net/topher/2017/June/59443931_circle-path/circle-path.gif)
-![alt text](https://d17h27t6h515a5.cloudfront.net/topher/2017/June/59432c9e_car-in-line/car-in-line.gif)
 
 
  ### Model
@@ -43,7 +40,6 @@ We don’t our avoid our out puts to be like:
 
  
  We expect an output such as this :
- ![alt text](https://d17h27t6h515a5.cloudfront.net/topher/2017/June/594452de_lane-change/lane-change.gif)
 
  
  
