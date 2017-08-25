@@ -20,6 +20,10 @@ constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
 
+
+vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y);
+
+
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
 // else the empty string "" will be returned.
@@ -200,9 +204,11 @@ int main() {
 	//start in first lane
 	int lane = 1;
 
-	double ref_vel = 49.5; // mph
+    double ref_vel = 0.0; // mph
 
-  h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+    h.onMessage(
+            [&map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy, &lane, &ref_vel](
+                    uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -239,13 +245,48 @@ int main() {
           	// Sensor Fusion Data, a list of all other cars on the same side of the road.
           	auto sensor_fusion = j[1]["sensor_fusion"];
 
-          	json msgJson;
 
-          	vector<double> next_x_vals;
-          	vector<double> next_y_vals;
+            int prev_size = previous_path_x.size(); // this is the last path that the car was follwing
+//
+            if (prev_size > 0) {
+                car_s = end_path_s;
+            }
+            bool too_close = false;
+
+            //find ref_v to use
+            for (int i = 0; i < sensor_fusion.size(); i++) {
 
 
-			int prev_size = previous_path_x.size(); // this is the last path that the car was follwoing
+                //car is in my lane
+                float d = sensor_fusion[i][6];
+                if (d < (2 + 4 * lane + 2) && d > (2 + 4 * lane - 2)) {
+                    double vx = sensor_fusion[i][3];
+                    double vy = sensor_fusion[i][4];
+                    double check_speed = sqrt(vx * vx + vy * vy);
+                    double check_car_s = sensor_fusion[i][5];
+
+                    check_car_s += ((double) prev_size * .02 *
+                                    check_speed);// if using the previous points can project s value out
+
+                    if ((check_car_s > car_s) && ((check_car_s - car_s) < 30)) {
+
+                        //Do some logic here , lower reference velocity so we doint crash in to the car in fron of us , could also flag to try to change lane
+//						ref_vel = 29.5; //mph
+                        too_close = true;
+                        if (lane > 0) {
+                            lane = 0;
+                        }
+
+                    }
+
+                }
+            }
+
+            if (too_close) {
+                ref_vel -= .224;
+            } else if (ref_vel < 49.5) {
+                ref_vel += .224;
+            }
 
 			vector<double> ptsx;
 			vector<double> ptsy;
@@ -255,10 +296,7 @@ int main() {
 			double ref_y = car_y;
 			double ref_yaw = deg2rad(car_yaw);
 
-			//start in first lane
-			lane = 1;
 
-			ref_vel = 49.5; // mph
 
 			// if the previous state is empty use the car as the  starting reference
 			if (prev_size < 2) {
@@ -280,6 +318,7 @@ int main() {
 
 				double ref_x_prev = previous_path_x[prev_size - 2];
 				double ref_y_prev = previous_path_y[prev_size - 2];
+                ref_yaw = atan2(ref_y - ref_y_prev, ref_x - ref_x_prev);
 
 				//use the two points that  make the path tangent to the previous paths end point
 				ptsx.push_back(ref_x_prev);
@@ -299,7 +338,8 @@ int main() {
 			vector<double> next_wp2 = getXY(car_s + 90, (2 + 4 * lane), map_waypoints_s, map_waypoints_x,
 											map_waypoints_y);
 
-			ptsx.push_back(next_wp0[0]);
+
+            ptsx.push_back(next_wp0[0]);
 			ptsx.push_back(next_wp1[0]);
 			ptsx.push_back(next_wp2[0]);
 
@@ -312,8 +352,8 @@ int main() {
 				double shift_x = ptsx[i] - ref_x;
 				double shift_y = ptsy[i] - ref_y;
 
-				ptsx[i] = (shift_x * cos(0 - ref_yaw) - shift_y * sin(0 - ref_yaw));
-				ptsy[i] = (shift_x * sin(0 - ref_yaw) - shift_y * cos(0 - ref_yaw));
+                ptsx[i] = (shift_x * cos(0 - ref_yaw) - shift_y * sin(0 - ref_yaw));
+                ptsy[i] = (shift_x * sin(0 - ref_yaw) + shift_y * cos(0 - ref_yaw));
 			}
 
 			//create a spline
@@ -322,18 +362,18 @@ int main() {
 			// set the x and y poihnts to spline
 			s.set_points(ptsx, ptsy);
 //
-//			json msgJson;
+            json msgJson;
 //
 //
-//			vector<double> next_x_vals;
-//			vector<double> next_y_vals;
+            vector<double> next_x_vals;
+            vector<double> next_y_vals;
 
 
-			// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-
-			int path_size = previous_path_x.size();
-
-			for (int i = 0; i < path_size; i++) {
+//			// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+//
+//			int path_size = previous_path_x.size();
+//
+            for (int i = 0; i < previous_path_x.size(); i++) {
 				next_x_vals.push_back(previous_path_x[i]);
 				next_y_vals.push_back(previous_path_y[i]);
 			}
@@ -350,7 +390,7 @@ int main() {
 			for (int i = 1; i <= 50 - previous_path_x.size(); i++) {
 
 				double N = (target_dist / (0.02 * ref_vel / 2.24));
-				double x_point = x_add_on + (target_x) / N;
+                double x_point = x_add_on + (target_x) / N;
 				double y_point = s(x_point);
 
 				x_add_on = x_point;
@@ -358,6 +398,7 @@ int main() {
 				double x_ref = x_point;
 				double y_ref = y_point;
 
+                // rotating back to normal after rotating at earlier
 				x_point = (x_ref * cos(ref_yaw) - y_ref * sin(ref_yaw));
 				y_point = (x_ref * sin(ref_yaw) + y_ref * cos(ref_yaw));
 
@@ -419,83 +460,3 @@ int main() {
   }
   h.run();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
